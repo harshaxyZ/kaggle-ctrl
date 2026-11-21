@@ -1,0 +1,17 @@
+{
+  "default_model": "REPLACE_WITH_YOUR_ALIAS",
+  "session_seconds": 39600,
+  "models": [
+    {
+      "key": "REPLACE_WITH_YOUR_ALIAS",
+      "label": "Your chosen model",
+      "hf_repo": "YOUR_ORGANIZATION/YOUR_REPOSITORY",
+      "filename": "YOUR_MODEL.gguf",
+      "revision": "main",
+      "ctx": 4096,
+      "n_parallel": 1,
+      "mmproj": "",
+      "server_args": []
+    }
+  ]
+}

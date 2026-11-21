@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Kaggle Control</title>
+<style>
+  :root{
+    --bg:#0a0e13; --panel:#111720; --panel2:#161d28; --line:#212b39;
+    --txt:#e4ecf5; --dim:#8395ab; --acc:#4c9aff; --ok:#3cbe80; --warn:#e0b341;
+    --bad:#f4685f; --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);font:13.5px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  header{position:sticky;top:0;z-index:10;display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+         padding:11px 18px;border-bottom:1px solid var(--line);background:rgba(12,17,24,.95);backdrop-filter:blur(8px)}
+  h1{font-size:14px;margin:0;letter-spacing:.4px;font-weight:600}
+  .grow{flex:1}
+  .pill{font:11px/1.65 var(--mono);padding:2px 9px;border-radius:999px;border:1px solid var(--line);color:var(--dim);white-space:nowrap}
+  .pill.ok{color:var(--ok);border-color:#1d4a35}
+  .pill.bad{color:var(--bad);border-color:#4a2320}
+  .pill.warn{color:var(--warn);border-color:#4a3d1a}
+  button{font:inherit;padding:5px 12px;border-radius:7px;border:1px solid var(--line);background:var(--panel2);color:var(--txt);cursor:pointer;transition:.12s}
+  button:hover:not(:disabled){border-color:var(--acc);color:#fff}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  button.p{background:var(--acc);border-color:var(--acc);color:#04121f;font-weight:600}
+  button.d{background:#3a1c1c;border-color:#5c2a2a;color:#ff9b95}
+  button.sm{padding:2px 8px;font-size:11.5px}
+  input,select{font:inherit;background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:7px;padding:5px 9px}
+  main{padding:16px 18px 60px;max-width:1400px;margin:0 auto}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:14px 15px;margin-bottom:14px}
+  .card h2{margin:0 0 11px;font-size:11px;letter-spacing:1.1px;text-transform:uppercase;color:var(--dim);font-weight:600}
+  .big{font:600 26px/1.1 var(--mono);margin:1px 0 3px}
+  .sub{color:var(--dim);font-size:11.5px}
+  .bar{height:6px;background:#1a2330;border-radius:99px;overflow:hidden;margin:8px 0 6px}
+  .bar>i{display:block;height:100%;background:linear-gradient(90deg,#2b76d0,#4c9aff);transition:width .4s}
+  .bar.g>i{background:linear-gradient(90deg,#2c8a5d,#3cbe80)}
+  .bar.w>i{background:linear-gradient(90deg,#a37d1e,#e0b341)}
+  .bar.r>i{background:linear-gradient(90deg,#9f3833,#f4685f)}
+  .kv{display:flex;justify-content:space-between;gap:12px;padding:2px 0;font-size:12.5px;align-items:baseline}
+  .kv b{font-family:var(--mono);font-weight:600;text-align:right;word-break:break-all}
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  th{text-align:left;color:var(--dim);font-weight:600;padding:6px 8px;border-bottom:1px solid var(--line);font-size:10.5px;text-transform:uppercase;letter-spacing:.5px}
+  td{padding:6px 8px;border-bottom:1px solid #18202b;vertical-align:top}
+  tr:hover td{background:#141b25}
+  .mono{font-family:var(--mono);font-size:11.5px}
+  .tag{display:inline-block;font:10px/1.7 var(--mono);padding:0 6px;border-radius:4px;border:1px solid var(--line);color:var(--dim);margin-right:3px;white-space:nowrap}
+  .tag.ok{color:var(--ok);border-color:#1d4a35}
+  .tag.warn{color:var(--warn);border-color:#4a3d1a}
+  .tag.bad{color:var(--bad);border-color:#4a2320}
+  .tag.acc{color:var(--acc);border-color:#1d3a5a}
+  .scroll{max-height:300px;overflow:auto}
+  .box{background:#080c11;border:1px solid var(--line);border-radius:7px;padding:9px;font-family:var(--mono);font-size:11px;white-space:pre-wrap;word-break:break-all;max-height:200px;overflow:auto;color:#b6c5d8}
+  .row{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+  .note{color:var(--dim);font-size:11.5px;margin-top:7px;line-height:1.45}
+  .muted{color:var(--dim)}
+  .right{text-align:right}
+  .sep{height:1px;background:var(--line);margin:11px 0}
+  .acct{border:1px solid var(--line);border-radius:9px;padding:11px 12px;margin-bottom:9px;background:var(--panel2)}
+  .acct.live{border-color:#1d4a35}
+  .acct.down{border-color:#4a2320}
+  .acct h3{margin:0 0 8px;font-size:12.5px;font-family:var(--mono)}
+  .flash{position:fixed;right:16px;bottom:16px;background:var(--panel2);border:1px solid var(--acc);border-radius:9px;padding:10px 14px;max-width:440px;display:none;z-index:30;font-size:12.5px;max-height:40vh;overflow:auto}
+  .flash.on{display:block}
+  /* account tabs */
+  .tabs{display:flex;gap:6px;margin-bottom:12px;border-bottom:1px solid var(--line);padding-bottom:10px;flex-wrap:wrap}
+  .tab{font:12.5px var(--mono);padding:6px 14px;border-radius:8px;border:1px solid var(--line);
+       background:var(--panel);color:var(--dim);cursor:pointer}
+  .tab.active{background:var(--acc);border-color:var(--acc);color:#04121f;font-weight:600}
+  .page{display:none}
+  .page.active{display:block}
+  @media(max-width:760px){ main{padding:12px} header{padding:9px 12px} }
+</style>
+</head>
+<body>
+<header>
+  <h1>Kaggle Control</h1>
+  <span class="pill" id="p-clock">-</span>
+  <span class="pill" id="p-live">-</span>
+  <span class="grow"></span>
+  <button id="auto-btn" onclick="toggleAuto()">Auto: ON (15s)</button>
+  <button onclick="refreshAll()">Refresh</button>
+</header>
+
+<main>
+
+  <!-- ============ API KEYS (top section, always visible) ============ -->
+  <div class="card">
+    <h2>API keys</h2>
+    <div class="row" style="margin-bottom:10px">
+      <input id="key-name" placeholder="key name" style="min-width:160px" />
+      <button class="p" onclick="createKey()">Create key</button>
+      <button class="d" onclick="deleteAllKeys()">Delete all keys</button>
+      <span class="pill" id="key-count">-</span>
+    </div>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Name</th><th>Key</th><th>State</th><th class="right">Req</th>
+          <th class="right">Tok in</th><th class="right">Tok out</th><th>Last used</th><th></th></tr></thead>
+        <tbody id="keys-body"></tbody>
+      </table>
+    </div>
+    <div class="note">Use any active key with the base URL below. It never changes, even when the
+      Kaggle kernels restart underneath.</div>
+  </div>
+
+  <!-- ============ SHARED ENDPOINT ============ -->
+  <div class="card">
+    <h2>Endpoint (same for both accounts)</h2>
+    <div class="kv"><span>Base URL</span><b id="ep-url">-</b></div>
+    <div class="kv"><span>API key</span><b id="ep-key">-</b></div>
+    <div class="kv"><span>Model</span><b id="ep-model">-</b></div>
+    <div class="kv"><span>Model proxy credits (daily)</span><b id="ep-pday">-</b></div>
+    <div class="row" style="margin-top:9px">
+      <button class="sm" onclick="copy(document.getElementById('ep-url').textContent)">Copy URL</button>
+      <button class="sm" onclick="copy(document.getElementById('ep-key').textContent)">Copy key</button>
+      <button class="sm" onclick="testChat()">Test request</button>
+      <button class="sm" onclick="mintProxy()">Mint proxy session</button>
+    </div>
+    <div class="box" id="proxy-box" style="margin-top:8px;display:none"></div>
+    <div class="note" id="ep-note">The router spreads each request across the live accounts and fails over
+      automatically. Responses carry an X-Kaggle-Account header naming the account that answered.</div>
+  </div>
+
+  <!-- ============ ACCOUNT TABS ============ -->
+  <div class="tabs">
+    <button class="tab active" id="tab-0" onclick="showTab(0)">Account 1</button>
+    <button class="tab" id="tab-1" onclick="showTab(1)">Account 2</button>
+  </div>
+
+  <div class="page active" id="page-0"></div>
+  <div class="page" id="page-1"></div>
+
+</main>
+
+<div class="flash" id="flash"></div>
+
+<script>
+const $ = id => document.getElementById(id);
+let timer = null, auto = true, lastState = null, lastKey = null, tab = 0;
+
+function flash(msg, bad){
+  const f = $('flash');
+  f.textContent = msg;
+  f.style.borderColor = bad ? '#f4685f' : '#4c9aff';
+  f.classList.add('on');
+  setTimeout(()=>f.classList.remove('on'), 7000);
+}
+function copy(t){
+  if(!t || t==='-') return flash('nothing to copy', true);
+  navigator.clipboard.writeText(t).then(()=>flash('copied'), ()=>flash('copy failed', true));
+}
+function esc(s){ return String(s==null?'':s).replace(/[<>&]/g, c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c])); }
+function ago(x){ if(!x) return 'never'; const d=Date.now()/1000-x; if(d<60) return Math.round(d)+'s ago';
+  if(d<3600) return Math.round(d/60)+'m ago'; return Math.round(d/3600)+'h ago'; }
+function bar(el, pct){ el.firstElementChild.style.width = Math.min(100,Math.max(0,pct))+'%'; }
+
+async function api(path, method, body){
+  const h = {'Content-Type':'application/json'};
+  if(lastKey) h['Authorization'] = 'Bearer '+lastKey;
+  const r = await fetch(path, {method:method||'GET', headers:h, body:body?JSON.stringify(body):undefined});
+  const t = await r.text();
+  let b; try{b=JSON.parse(t)}catch(e){b=t}
+  if(!r.ok) throw new Error((b&&b.detail)||r.status);
+  return b;
+}
+
+function showTab(i){
+  tab = i;
+  for(let k=0;k<2;k++){
+    $('page-'+k).classList.toggle('active', k===i);
+    $('tab-'+k).classList.toggle('active', k===i);
+  }
+}
+
+async function refreshAll(){
+  try{
+    const s = await api('/api/state');
+    lastState = s;
+    render(s);
+    $('p-clock').textContent = 'updated '+new Date().toLocaleTimeString();
+  }catch(e){ flash('refresh failed: '+e.message, true); }
+}
+
+function render(s){
+  // ---- shared endpoint
+  $('ep-url').textContent = 'http://'+location.host+'/v1';
+  $('ep-key').textContent = lastKey || '-';
+  const m0 = (s.models||[])[0];
+  $('ep-model').textContent = m0 ? m0.label : '-';
+  $('ep-pday').textContent = '$' + ((s.proxy_quota||{}).daily?.remaining ?? 0).toFixed(2) + ' of $10 today';
+
+  const eps = s.live_endpoints||[];
+  $('p-live').textContent = eps.length ? ('live: '+eps.length+' endpoint(s)') : 'no live endpoint';
+  $('p-live').className = 'pill '+(eps.length?'ok':'bad');
+
+  // ---- per-account pages
+  const accts = s.accounts||[];
+  for(let i=0;i<2;i++){
+    const a = accts[i];
+    if(!a){ $('page-'+i).innerHTML = '<div class="card">Account '+(i+1)+' not configured.</div>'; continue; }
+    const live = eps.find(e=>e.account_name===a.name);
+    const ep = (s.endpoints||[]).find(e=>e.account===a.name);
+    const st = (s.accelerator||{});
+    const aq = (s.account_quota||{})[a.name] || {};
+    const used = aq.used_h ?? a.used_hours ?? 0;
+    const total = aq.total_h ?? a.max_hours ?? 30;
+    const rem = Math.max(0, total - used);
+    const pct = total ? (rem/total*100) : 0;
+
+    const an = (s.analytics||{});
+    const rows = (an.recent||[]).filter(r=>r.account===a.name);
+
+    $('page-'+i).innerHTML = `
+      <div class="card">
+        <h2>${esc(a.name)} (${esc(a.username||'')})</h2>
+        <div class="row" style="margin-bottom:10px">
+          <button class="p" onclick="startOn('${esc(a.id)}')" ${live?'disabled':''}>Start model</button>
+          <button class="d" onclick="stopAccount('${esc(a.id)}')" ${live?'':'disabled'}>Stop model</button>
+          <span class="pill ${live?'ok':'bad'}">${live?'RUNNING':'STOPPED'}</span>
+          <span class="pill">${a.usable?'usable':'blocked'}</span>
+        </div>
+
+        <div class="big">${rem.toFixed(2)} h</div>
+        <div class="sub">GPU hours left of ${total.toFixed(0)} h this week</div>
+        <div class="bar ${pct<10?'r':(pct<30?'w':'g')}"><i style="width:${pct}%"></i></div>
+        <div class="kv"><span>Used</span><b>${used.toFixed(2)} h</b></div>
+        <div class="kv"><span>Resets</span><b>${aq.reset_at ? new Date(aq.reset_at).toLocaleString() : (a.reset_at||'-')}</b></div>
+
+        <div class="sep"></div>
+        <div class="kv"><span>Model endpoint</span><b>${live ? esc(live.endpoint) : 'not running'}</b></div>
+        <div class="kv"><span>Endpoint URL</span><b>${live ? esc(live.endpoint)+'/v1' : '-'}</b></div>
+        <div class="kv"><span>Endpoint API key</span><b>${live ? esc(live.api_key) : '-'}</b></div>
+        <div class="kv"><span>Uptime</span><b>${live? Math.round((live.uptime_s||0)/60)+' min':'-'}</b></div>
+        <div class="kv"><span>Requests served</span><b>${ep? (ep.requests||0):0}</b></div>
+        <div class="kv"><span>Last throughput</span><b>${ep && ep.last_tps? ep.last_tps+' tok/s':'-'}</b></div>
+        <div class="kv"><span>Average throughput</span><b>${ep && ep.avg_tps? ep.avg_tps+' tok/s':'-'}</b></div>
+        <div class="row" style="margin-top:9px">
+          ${live? `<button class="sm" onclick="copy('${esc(live.endpoint)}/v1')">Copy URL</button>
+                   <button class="sm" onclick="copy('${esc(live.api_key)}')">Copy key</button>` : ''}
+          ${live? `<button class="sm" onclick="testChat('${esc(live.endpoint)}','${esc(live.api_key)}')">Test this endpoint</button>` : ''}
+        </div>
+        <div class="note">${esc(a.notes||'')}</div>
+      </div>
+
+      <div class="card">
+        <h2>${esc(a.name)} analytics</h2>
+        <div class="row" style="gap:14px;margin-bottom:9px">
+          <span class="pill">requests: ${rows.length}</span>
+          <span class="pill">tok in: ${rows.reduce((s,r)=>s+(r.in||0),0)}</span>
+          <span class="pill">tok out: ${rows.reduce((s,r)=>s+(r.out||0),0)}</span>
+          <span class="pill">errors: ${rows.filter(r=>!r.ok).length}</span>
+        </div>
+        <div class="scroll">
+          <table>
+            <thead><tr><th>Time</th><th>Model</th><th class="right">In</th><th class="right">Out</th>
+              <th class="right">ms</th><th class="right">tok/s</th><th>OK</th></tr></thead>
+            <tbody>
+            ${rows.length? rows.slice().reverse().map(r=>`<tr>
+                <td class="mono">${new Date(r.ts*1000).toLocaleTimeString()}</td>
+                <td class="mono">${esc(r.model)}</td>
+                <td class="right mono">${r.in||0}</td>
+                <td class="right mono">${r.out||0}</td>
+                <td class="right mono">${Math.round(r.ms||0)}</td>
+                <td class="right mono">${r.ms&&r.out?((r.out/(r.ms/1000)).toFixed(1)):'-'}</td>
+                <td>${r.ok?'<span class="tag ok">ok</span>':'<span class="tag bad">err</span>'}</td></tr>`).join('')
+              : '<tr><td colspan="7" class="muted">No requests yet.</td></tr>'}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>${esc(a.name)} kernel log</h2>
+        <div class="box" style="max-height:280px">${esc(logFor(a.name))}</div>
+      </div>`;
+  }
+}
+
+function logFor(acct){
+  const s = lastState; if(!s) return 'no data';
+  const d = (s.deployments||[]).find(x=>x.account_name===acct);
+  if(!d) return 'no deployment for this account';
+  return (d.message||'') + '\n' + (d.phase||'') + '\n' + (d.logs_tail||'');
+}
+
+async function loadKeys(){
+  try{
+    // reveal=true: this page is only served to localhost or a key-holder, and
+    // the Copy/Revoke/Delete buttons need the real key, not the masked one
+    // (the masked value silently failed those actions before).
+    const ks = await api('/api/keys?reveal=true');
+    $('key-count').textContent = (ks||[]).length + ' key(s)';
+    $('keys-body').innerHTML = (ks||[]).map(k=>`<tr>
+      <td>${esc(k.name)}</td>
+      <td class="mono">${esc(k.key_masked||k.key||'')}</td>
+      <td><span class="tag ${k.state==='active'?'ok':(k.state==='revoked'?'bad':'warn')}">${esc(k.state)}</span></td>
+      <td class="right mono">${k.requests??0}</td>
+      <td class="right mono">${k.tokens_in??0}</td>
+      <td class="right mono">${k.tokens_out??0}</td>
+      <td class="mono">${ago(k.last_used)}</td>
+      <td class="right"><button class="sm" onclick="copy('${esc(k.key||'')}')">Copy</button>
+        <button class="sm" onclick="revokeKey('${esc(k.key||'')}', ${k.revoked?'true':'false'})">${k.revoked?'Enable':'Revoke'}</button>
+        <button class="sm d" onclick="delKey('${esc(k.key||'')}')">Del</button></td></tr>`).join('');
+    const act = (ks||[]).filter(k=>k.state==='active');
+    if(act.length){ if(!lastKey) lastKey = act[0].key; $('ep-key').textContent = act[0].key; }
+  }catch(e){ flash('keys: '+e.message, true); }
+}
+
+async function createKey(){
+  try{ await api('/api/keys','POST',{name:$('key-name').value||''}); $('key-name').value=''; await loadKeys(); flash('key created'); }
+  catch(e){ flash('create failed: '+e.message, true); }
+}
+async function revokeKey(k, revoked){
+  try{ await api('/api/keys/'+encodeURIComponent(k)+(revoked?'/unrevoke':'/revoke'),'POST',{}); await loadKeys(); flash('toggled'); }
+  catch(e){ flash(e.message, true); }
+}
+async function delKey(k){
+  try{ await api('/api/keys/'+encodeURIComponent(k)+'/delete','POST',{}); await loadKeys(); flash('deleted'); }
+  catch(e){ flash(e.message, true); }
+}
+async function deleteAllKeys(){
+  if(!confirm('Delete every API key? Clients using them will stop working.')) return;
+  try{ await api('/api/keys/delete-all','POST',{}); lastKey=null; await loadKeys(); flash('all keys deleted'); }
+  catch(e){ flash(e.message, true); }
+}
+async function mintProxy(){
+  try{
+    const s = await api('/api/proxy/session');
+    $('proxy-box').style.display='block';
+    $('proxy-box').textContent='base_url: '+s.base_url+'\napi_key:  '+s.api_key+'\nexpires:  '+s.expiry;
+  }catch(e){ flash('mint failed: '+e.message, true); }
+}
+async function startOn(aid){
+  try{ const r = await api('/api/server/start','POST',{account_id:aid}); flash(r.message||'pushed'); setTimeout(refreshAll,2500); }
+  catch(e){ flash('start failed: '+e.message, true); }
+}
+async function stopAccount(aid){
+  try{ const r = await api('/api/server/stop-by-account','POST',{account_id:aid}); flash(r.message||'stopped'); setTimeout(refreshAll,1500); }
+  catch(e){ flash(e.message, true); }
+}
+async function testChat(base, key){
+  try{
+    const h={'Content-Type':'application/json'};
+    if(key) h['Authorization']='Bearer '+key;
+    const t0=Date.now();
+    const r=await fetch((base||'')+'/v1/chat/completions',{method:'POST',headers:h,
+      body:JSON.stringify({model:(await api('/api/models'))[0]?.key,messages:[{role:'user',content:'say PONG'}],max_tokens:16})});
+    const j=await r.json();
+    const dt=((Date.now()-t0)/1000).toFixed(1);
+    const tps=(j.usage&&j.usage.completion_tokens)?(j.usage.completion_tokens/dt).toFixed(1):'?';
+    flash('served in '+dt+'s | '+tps+' tok/s | '+((j.choices&&j.choices[0].message.content)||'').slice(0,50));
+  }catch(e){ flash('test failed: '+e.message, true); }
+}
+function toggleAuto(){
+  auto=!auto;
+  if(auto){ timer=setInterval(refreshAll,15000); } else { clearInterval(timer); }
+  $('auto-btn').textContent='Auto: '+(auto?'ON (15s)':'OFF');
+}
+
+refreshAll(); loadKeys();
+timer = setInterval(refreshAll, 15000);
+setInterval(loadKeys, 30000);
+</script>
+</body>
+</html>
